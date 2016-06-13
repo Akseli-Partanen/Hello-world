@@ -9,6 +9,7 @@ def main():
 		except:
 			continue
 	sys.stdout.write(str(sum))
+	sys.stdout.write("Calculation finished.")
 	
 
 main()
