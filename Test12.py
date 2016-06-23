@@ -1,15 +1,56 @@
-import sys
+from __future__ import print_function
+import httplib2
+import os
 
-def main():
-	sys.stdout.write('This program adds numbers.\n')
-	sum = 0
-	for arg in sys.argv:
-		try:
-			sum = sum + float(arg)
-		except:
-			continue
-	sys.stdout.write(str(sum))
-	sys.stdout.write("Calculation finished.")
+from apiclient import discovery
+import oauth2client
+from oauth2client import client
+from oauth2client import tools
+
+try:
+    import argparse
+    flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+except ImportError:
+    flags = None
+
+import datetime
+
+SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
+CLIENT_SECRET_FILE = 'client_secret.json'
+APPLICATION_NAME = 'Test12'
+
+def get_credentials():
+    home_dir = os.path.expanduser('~')
+    credential_dir = os.path.join(home_dir, '.credentials')
+    if not os.path.exists(credential_dir):
+        os.makedirs(credential_dir)
+    credential_path = os.path.join(credential_dir,
+                                   'calendar-python-Test12.json')
+
+    store = oauth2client.file.Storage(credential_path)
+    credentials = store.get()
+    if not credentials or credentials.invalid:
+        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
+        flow.user_agent = APPLICATION_NAME
+        if flags:
+            credentials = tools.run_flow(flow, store, flags)
+        else: # Needed only for compatibility with Python 2.6
+            credentials = tools.run(flow, store)
+        print('Storing credentials to ' + credential_path)
+    return credentials
 	
+def main():
+	credentials = get_credentials()
+	http = credentials.authorize(httplib2.Http())
+	service = discovery.build('calendar', 'v3', http=http)
+	
+	eventsResult = service.events().list(calendarId = 'primary').execute()
+	events = eventsResult.get('items', [])
+	
+	for event in events:
+		print(event["summary"])
+	
+		
 
-main()
+if __name__ == '__main__':
+    main()
